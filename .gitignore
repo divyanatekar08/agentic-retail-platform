@@ -1,0 +1,17 @@
+# Virtual Environments
+.venv/
+env/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# VS Code settings (optional, keep settings if team-shared)
+.vscode/*.log
+
+# Environment variables & secrets
+.env
+*.pem
