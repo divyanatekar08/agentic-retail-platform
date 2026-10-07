@@ -61,19 +61,6 @@ agentic-retail-platform/
 - **Agentic Orchestration & LLMs**: LangGraph, DSPy, Google GenAI SDK (`gemini-2.5-flash`)
 - **Vector Search & Analytics**: FastEmbed, Qdrant Client, Polars, NumPy
 - **DevOps, Containerization & Testing**: Docker, Docker Compose, GitHub Actions, Pytest, Pytest-Asyncio
-
----
-
-## 🚀 Getting Started
-
-### 1. Repository Clone & Environment Setup
-
-```bash
-git clone [https://github.com/divyanatekar08/agentic-retail-platform.git](https://github.com/divyanatekar08/agentic-retail-platform.git)
-cd agentic-retail-platform
-
-# Create and activate virtual environment
-python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
