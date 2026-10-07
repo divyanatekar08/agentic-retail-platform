@@ -1,6 +1,10 @@
 import os
 import logging
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
+
+# Automatically load .env environment variables
+load_dotenv()
 
 # 1. Force NumPy and Qdrant eager initialization before DSPy loads
 import numpy as np
@@ -86,11 +90,16 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 # ------------------------------------------------------------------
-# DSPy Configuration & Module Setup
+# DSPy Configuration & Module Setup (Configured for Gemini)
 # ------------------------------------------------------------------
 
-lm = dspy.LM("openai/gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY", "your-api-key"))
-dspy.configure(lm=lm)
+gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+if gemini_key:
+    lm = dspy.LM("google/gemini-2.5-flash", api_key=gemini_key)
+    dspy.configure(lm=lm)
+else:
+    logger.warning("GEMINI_API_KEY not found in environment variables.")
 
 class QueryAnalyzer(dspy.Signature):
     """Extract spatial and retail constraints from raw customer intent."""
@@ -116,7 +125,7 @@ agent_app = build_retail_graph()
 # ------------------------------------------------------------------
 
 class SearchRequest(BaseModel):
-    query: str = Field(..., json_schema_extra={"example": "Looking for casual Italian dining within a 10 min walk"})
+    query: str = Field(..., json_schema_extra={"example": "Looking for casual Italian dining or milk options within a 10 min walk"})
 
 class CandidatePOI(BaseModel):
     poi_id: int
@@ -125,9 +134,15 @@ class CandidatePOI(BaseModel):
     walk_time_min: int
     rating: float
 
+class ProductMatch(BaseModel):
+    name: str
+    category: str
+    description: str
+
 class SearchResponse(BaseModel):
     extracted_preferences: Dict[str, Any]
     retrieved_locations: List[CandidatePOI]
+    rag_product_matches: List[ProductMatch]
     execution_trace: List[str]
     is_sufficient: bool
 
@@ -152,12 +167,18 @@ async def get_spatial_recommendation(request: SearchRequest):
     return SearchResponse(
         extracted_preferences=result["extracted_preferences"],
         retrieved_locations=result["retrieved_locations"],
+        rag_product_matches=result.get("rag_product_matches", []),
         execution_trace=result["execution_trace"],
         is_sufficient=result["is_sufficient"]
     )
 
 @app.post("/api/v1/analyze-query", response_model=AnalyzeQueryResponse)
 async def analyze_query_with_dspy(request: SearchRequest):
+    if not gemini_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GEMINI_API_KEY is not configured."
+        )
     prediction = query_agent(query=request.query)
     return AnalyzeQueryResponse(
         cuisine_type=prediction.cuisine_type,
